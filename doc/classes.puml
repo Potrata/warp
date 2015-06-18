@@ -1,0 +1,51 @@
+@startuml
+
+package WARP {
+    class Application <<(S,#FF7700) Singleton>> {
+      +{static}create()
+      ----
+      +name: String
+      -state: Object
+      -components: Map
+      ....
+      +start()
+      +destroy()
+      ....
+      +get()
+      +set()
+      ....
+      +addComponent()
+      +hasComponent()
+      +getComponent()
+      ....
+      +on()
+      +once()
+      +off()
+      +wait()
+    }
+
+    abstract Component {
+      +{static} id: String
+      +{static} defaults: Object
+      ----
+      +app: Application
+      ----
+      +{abstract}init()
+      +{abstract}start()
+      +{abstract}destroy()
+      ----
+      +{abstract}mixins: Object
+      +{abstract}handlers: Object
+    }
+
+    Application *- Component: > has many
+}
+class ConcreteComponent {
+  -someProperty
+  +someMethod()
+  ..mixins..
+  +someMethod()
+}
+Component <|. ConcreteComponent
+
+@enduml

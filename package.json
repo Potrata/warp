@@ -1,0 +1,18 @@
+{
+  "name": "warp",
+  "version": "0.0.1",
+  "description": "WARP",
+  "main": "./index.js",
+  "author": "Николай Чурсин <n_chursin@head-point.ru>",
+  "license": "ISC",
+  "dependencies": {
+    "babel": "^5.5.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://stash.head-point.ru:443/scm/warp/warp.git"
+  },
+  "keywords": [
+    "warp"
+  ]
+}
