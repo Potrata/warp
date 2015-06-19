@@ -1,5 +1,5 @@
 {
-  "name": "warp",
+  "name": "@hp/warp",
   "version": "0.0.1",
   "description": "WARP",
   "main": "./index.js",
@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://stash.head-point.ru:443/scm/warp/warp.git"
+    "url": "https://stash.head-point.ru/scm/warp/warp.git"
   },
   "keywords": [
     "warp"

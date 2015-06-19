@@ -6,12 +6,12 @@ WARP
 
 ### Installation
 ``` bash
-$ npm install git+https://stash.head-point.ru:443/scm/warp/warp.git --save
+$ npm install @hp/warp --save
 ```
 
 ### Usage
 ```js
-import warp from 'warp';
+import warp from '@hp/warp';
 
 let app = warp({ name: 'pretty-fucking-awesome' });
   app.start()).then(() =>
