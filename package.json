@@ -1,6 +1,6 @@
 {
   "name": "@hp/warp",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "WARP",
   "main": "./index.js",
   "author": "Николай Чурсин <n_chursin@head-point.ru>",
@@ -14,5 +14,6 @@
   },
   "keywords": [
     "warp"
-  ]
+  ],
+  "scripts": {}
 }
