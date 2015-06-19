@@ -2,7 +2,7 @@
   "name": "@hp/warp",
   "version": "0.0.2",
   "description": "WARP",
-  "main": "./index.js",
+  "main": "./index.es6",
   "author": "Николай Чурсин <n_chursin@head-point.ru>",
   "license": "ISC",
   "dependencies": {
