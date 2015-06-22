@@ -1,12 +1,12 @@
 {
   "name": "@hp/warp",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "WARP",
   "main": "./index.es6",
   "author": "Николай Чурсин <n_chursin@head-point.ru>",
   "license": "ISC",
   "dependencies": {
-    "babel": "^5.5.8"
+    "babel": "^5.6.2"
   },
   "repository": {
     "type": "git",
@@ -15,5 +15,7 @@
   "keywords": [
     "warp"
   ],
-  "scripts": {}
+  "scripts": {
+    "build": "rm -rf ./dist && babel --ignore=node_modules --source-maps=true --extensions='.es6' --copy-files -d ./dist ./"
+  }
 }
