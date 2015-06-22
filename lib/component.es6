@@ -26,53 +26,59 @@ class Component {
    */
   onInit(app) {
     this.app = app;
-    return (isFunction(this.init) ?
-      this.init(app) :
-      Promise.resolve()).then(() => Object.assign(app, this.mixins));
+    return Promise.resolve(isFunction(this.init) && this.init(app))
+      .then(() => this._mapMixins());
   }
 
   /**
    * @return {Promise}
    */
   onStart() {
-    this._attachHandlers();
-    if (isFunction(this.start)) {
-      return this.start();
-    }
-    return Promise.resolve();
+    this._mapHandlers();
+    return Promise.resolve(isFunction(this.start) && this.start());
   }
 
   /**
    * @return {Promise}
    */
   onDestroy() {
-    Object.keys(this.mixins || {}).forEach(k => delete this.app[k]);
-    this._removeHandlers();
-
-    if (isFunction(this.destroy)) {
-      return this.destroy();
-    }
-    return Promise.resolve();
+    this._unmapHandlers();
+    this._unmapMixins();
+    return Promise.resolve(isFunction(this.destroy) && this.destroy());
   }
 
   get handlers() {
     return {};
-  };
+  }
 
   get mixins() {
     return {};
   }
 
-  _attachHandlers() {
-    this._handlers = Object.entries(this.handlers)
-      .filter(([,fnName]) => this[fnName])
-      .map(([evt,fnName]) => [evt, this[fnName].bind(this)]);
-
-    this._handlers.forEach(([evt, fn]) => this.app.on(evt, fn));
+  _mapHandlers() {
+    this._handlers = Object.assign({}, this.handlers);
+    this._handlers = Object.keys(this._handlers)
+      .map(msg => [msg, this._handlers[msg].bind(this)]);
+    this._handlers.forEach(([msg, fn]) => this.app.on(msg, fn));
   }
 
-  _removeHandlers() {
-    this._handlers.forEach(([evt, fn]) => this.app.off(evt, fn));
+  _unmapHandlers() {
+    this._handlers.forEach(([msg, fn]) => this.app.off(msg, fn));
+  }
+
+  _mapMixins() {
+    Object.keys(this.mixins)
+      .forEach(fnName => {
+        if (this.app[fnName]) {
+          throw new Error(`Can't use mixin '${fnName}' - application already has method or field with same name`);
+        }
+        Object.assign(this.app, { [fnName]: this.mixins[fnName].bind(this) });
+      });
+  }
+
+  _unmapMixins() {
+    Object.keys(this.mixins)
+      .forEach(fnName => delete this.app[fnName]);
   }
 }
 
