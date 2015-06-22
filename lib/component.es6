@@ -68,11 +68,16 @@ class Component {
 
   _mapMixins() {
     Object.keys(this.mixins)
-      .forEach(fnName => {
-        if (this.app[fnName]) {
-          throw new Error(`Can't use mixin '${fnName}' - application already has method or field with same name`);
+      .forEach(name => {
+        if (this.app[name]) {
+          throw new Error(`Can't use mixin '${name}' - application already has method or field with same name`);
         }
-        Object.assign(this.app, { [fnName]: this.mixins[fnName].bind(this) });
+
+        let mixin = this.mixins[name];
+        if (isFunction(mixin)) {
+          mixin = mixin.bind(this);
+        }
+        Object.assign(this.app, { [name]: mixin });
       });
   }
 
