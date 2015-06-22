@@ -2,7 +2,7 @@
 
 import EventEmitter from 'events';
 import assert from 'assert';
-import {isObject, isFunction} from 'util';
+import {isObject, isFunction, isString} from 'util';
 
 /**
  * @desc Represents generic application skeleton,
@@ -50,9 +50,13 @@ class Application {
       return Object.assign({}, this._state);
     }
 
+    else if (fieldNames.length === 1) {
+      return this._state[fieldNames[0]];
+    }
+
     return fieldNames
-      .map(name => ({ [name]: this._state[name] }))
-      .filter(({k, v})=>typeof(v) !== 'undefined')
+      .filter(fieldName => this._state.hasOwnProperty(fieldName))
+      .map(fieldName => ({ [fieldName]: this._state[fieldName] }))
       .reduce((p, c) => Object.assign(p, c), {});
   }
 
@@ -135,23 +139,35 @@ class Application {
   }
 
   /**
-   * @desc Emits an event
+   * @desc Emits an event (asynchronously)
    * @param {String} msg
-   * @param {args<*>} [args]
-   * @return {Number}
+   * @param {*} [args]
+   * @return {Promise}
    */
   emit(msg, ...args) {
-    return this._hub.emit(msg, ...args);
+    return new Promise(resolve => process.nextTick(() => {
+      resolve(this._hub.emit(msg, ...args));
+    }));
   }
 
   /**
    * @desc Subscribes to event with given callback
    * @param {String} msg
    * @param {function} cb
-   * @return {Number}
+   * @return {EventEmitter}
    */
   on(msg, cb) {
     return this._hub.on(msg, cb);
+  }
+
+  /**
+   * @desc Subscribes to event with given callback, and unsubscribes once it fired
+   * @param {String} msg
+   * @param {function} cb
+   * @return {EventEmitter}
+   */
+  once(msg, cb) {
+    return this._hub.once(msg, cb);
   }
 
   /**
@@ -171,47 +187,96 @@ class Application {
    * @return {Promise}
    */
   wait(msg, timeout = 0) {
+    timeout = parseInt(timeout);
+
     return new Promise((resolve, reject) => {
-      let _timer = (timeout > 0) ? setTimeout(() => {
+      let _timer;
+
+      function _handleFn(...args) {
+        if (_timer > 0) {
+          clearTimeout(_timer)
+        }
+        return resolve(...args);
+      }
+
+      _timer = (timeout > 0) ? setTimeout(() => {
         this.off(msg, _handleFn);
         reject(`timed out`);
       }, timeout) : null;
       this._hub.once(msg, _handleFn);
-
-      function _handleFn(data) {
-        if (_timer) {
-          clearTimeout(_timer)
-        }
-        return resolve(data);
-      }
     });
   }
 
   /**
    * @desc Returns promise, resolved only when all events are triggered, or rejected by timeout.
-   * @param {Array<String>} msgs
+   * @param {Array<String>} messages
    * @param {Number} [timeout = 0]
    * @return {Promise}
    */
-  waitAll(msgs, timeout = 0) {
-    let deferred = Promise.defer();
-    let _timer = (timeout > 0) ? setTimeout(() => {
-      this.off(msg, _handleFn);
-      deferred.reject(`timed out`);
-    }, timeout) : null;
+  waitAll(messages, timeout = 0) {
+    if (isString(messages)) {
+      messages = [messages]
+    }
 
-    let promises = msgs.map(msg => new Promise((resolve) => {
-      this._hub.once(msg, resolve);
-    }));
+    timeout = parseInt(timeout);
 
-    Promise.all(promises).then((data) => {
-      if (timeout > 0) {
-        clearTimeout(_timer);
-      }
-      return deferred.resolve(data);
-    });
+    let removeListeners = _handlers =>
+      _handlers.forEach(handler =>
+        this._hub.removeListener.apply(this._hub, handler));
 
-    return deferred.promise;
+    let executor = (resolve, reject) => {
+      let _handlers = [];
+      let _timer = (timeout > 0) ? setTimeout(() => {
+        removeListeners(_handlers);
+        reject(`timed out`);
+      }, timeout) : null;
+
+      let promises = messages.map(msg =>
+        new Promise(resolveOne => {
+            _handlers.push([msg, resolveOne]);
+            this._hub.once(msg, resolveOne);
+          }
+        ));
+
+      Promise.all(promises)
+        .then((data) => {
+          if (_timer) {
+            clearTimeout(_timer);
+          }
+          return data;
+        }).then(resolve);
+    };
+
+    return new Promise(executor);
+  }
+
+  /**
+   * Returns promise resolved by replyFn (wrapped within request handler last argument) on subscriber's side,
+   * or rejected by timeout
+   * @param {String|Number} msg
+   * @param {*} [data]
+   * @param {Number} [timeout = 0]
+   * @return {Promise}
+   */
+  request(msg, data, timeout) {
+    if (!this._nextRequestId) {
+      this._nextRequestId = 0;
+    }
+
+    this._nextRequestId += 1;
+
+    let _replyMsgId = `rep.${msg}.${this._nextRequestId}`;
+    let _header = {
+      id: this._nextRequestId,
+      created: Date.now()
+    };
+
+    let replyFn = (_data) => {
+      this.emit(_replyMsgId, _data);
+    };
+
+    this.emit(msg, _header, data, replyFn.bind(this));
+    return this.wait(_replyMsgId, timeout);
   }
 
   _addComponent(ComponentClass, config) {
