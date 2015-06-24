@@ -1,6 +1,19 @@
 'use strict';
 
+import co from 'co';
 import {isArray, isFunction} from 'util';
+
+function mixin(target, source) {
+  target = target.prototype;
+  source = source.prototype;
+
+  Object.getOwnPropertyNames(source)
+    .forEach(name => {
+      if (name !== 'constructor') {
+        Object.defineProperty(target, name, Object.getOwnPropertyDescriptor(source, name));
+      }
+    });
+}
 
 /**
  * @desc Represents pluggable application extension through mixins and event-hooks
@@ -9,6 +22,17 @@ import {isArray, isFunction} from 'util';
 class Component {
   static defaults() {
     return {};
+  }
+
+  static create(module, config) {
+    let _moduleClass = class extends Component {
+      constructor(config) {
+        super(config);
+        Object.assign(this, module);
+      }
+    };
+   // let componentModule = mixin(_moduleClass, Component);
+    return Reflect.construct(_moduleClass, config);
   }
 
   /**
@@ -20,22 +44,28 @@ class Component {
     this.id = this.id || this.constructor.id;
   }
 
+  * init() {}
+
+  * start() {}
+
+  * destroy() {}
+
   /**
    * @param {Application} app
    * @return {Promise}
    */
   onInit(app) {
     this.app = app;
-    return Promise.resolve(isFunction(this.init) && this.init(app))
-      .then(() => this._mapMixins());
+    return this.callMethod(this.init);
   }
 
   /**
    * @return {Promise}
    */
   onStart() {
+    this._mapMixins();
     this._mapHandlers();
-    return Promise.resolve(isFunction(this.start) && this.start());
+    return this.callMethod(this.start);
   }
 
   /**
@@ -44,7 +74,13 @@ class Component {
   onDestroy() {
     this._unmapHandlers();
     this._unmapMixins();
-    return Promise.resolve(isFunction(this.destroy) && this.destroy());
+    return this.callMethod(this.destroy);
+  }
+
+  callMethod(fn) {
+    return co.call(this, function *() {
+      yield fn.call(this);
+    });
   }
 
   get handlers() {
