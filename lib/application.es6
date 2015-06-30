@@ -208,7 +208,7 @@ class Application {
 
   _getImportsFor(entry) {
     let {id} = entry;
-    let imports = entry.imports || entry.ComponentClass.imports;
+    let imports = entry.imports || entry.ComponentClass.imports || [];
 
     this.debug(`getting imports of ${id}: [${imports.join(', ')}]`);
 

@@ -81,7 +81,7 @@ describe('bus', () => {
       });
 
       return bus.request('req', null, 1000)
-        .catch(value => expect(value).to.be.an.instanceof(Error));
+        .catch(value => expect(value).to.be.an.equal('error'));
     });
 
     it('should reject when timed out', () => {

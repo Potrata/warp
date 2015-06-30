@@ -47,11 +47,7 @@ class Bus extends EventEmitter {
       _callback = _callback.bind(context);
     }
 
-    let handler = (...args) => {
-      _callback(...args).catch(err => {
-        throw new Error(err);
-      });
-    };
+    let handler = (...args) => _callback(...args);
 
     this._pushManagedHandler(event, callback, handler);
     return super.on(event, handler);
@@ -194,7 +190,7 @@ class Bus extends EventEmitter {
         }
 
         if (replyHeader.error) {
-          throw new Error(replyData);
+          throw replyData;
         }
 
         return replyData;
