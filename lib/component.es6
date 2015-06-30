@@ -1,19 +1,8 @@
 'use strict';
 
-import co from 'co';
+import debug from 'debug';
 import {isArray, isFunction} from 'util';
-
-function mixin(target, source) {
-  target = target.prototype;
-  source = source.prototype;
-
-  Object.getOwnPropertyNames(source)
-    .forEach(name => {
-      if (name !== 'constructor') {
-        Object.defineProperty(target, name, Object.getOwnPropertyDescriptor(source, name));
-      }
-    });
-}
+import co from 'co';
 
 /**
  * @desc Represents pluggable application extension through mixins and event-hooks
@@ -24,62 +13,119 @@ class Component {
     return {};
   }
 
-  static create(module, config) {
-    let _moduleClass = class extends Component {
-      constructor(config) {
-        super(config);
-        Object.assign(this, module);
-      }
-    };
-   // let componentModule = mixin(_moduleClass, Component);
-    return Reflect.construct(_moduleClass, config);
-  }
-
   /**
-   * @param {Object} config
-   * @param {String|Number} [config.id];
+   * @param {string} id
+   * @param {Bus} bus
    */
-  constructor(config = {}) {
-    Object.assign(this, this.constructor.defaults, config);
-    this.id = this.id || this.constructor.id;
+  constructor(id, bus) {
+    this.id = id;
+    this.imports = {};
+    this.config = {};
+    this._bus = bus;
+    this.debug = debug(this.id);
+    this._setStatus(Component.Status.created);
   }
 
   * init() {}
 
   * start() {}
 
+  * afterStart() {}
+
+  * beforeDestroy() {}
+
   * destroy() {}
 
+  /** Bus delegator proxy */
+
+  emit(event, data) {
+    return this._bus.emit(event, data, { from: this.id });
+  }
+
+  wait(event, timeout = 0) {
+    return this._bus.wait(event, timeout, { from: this.id });
+  }
+
+  request(event, data, timeout = 0) {
+    return this._bus.request(event, data, timeout, this.id);
+  }
+
+  on(event, callback) {
+    this.emit('listen', event);
+    return this._bus.on(event, callback, this);
+  }
+
+  once(event, callback) {
+    this.emit('listen', event);
+    return this._bus.once(event, callback, this);
+  }
+
+  onRequest(event, callback) {
+    this.emit('listen', event);
+    return this._bus.onRequest(event, callback, this);
+  }
+
+  off(event, callback) {
+    return this._bus.off(event, callback);
+  }
+
+  /** Bus delegator proxy end */
+
   /**
-   * @param {Application} app
+   * @param {Object} config
+   * @param {Object<string, Component>} imports
    * @return {Promise}
    */
-  onInit(app) {
-    this.app = app;
-    return this.callMethod(this.init);
+  onInit(config, imports) {
+    Object.assign(this.config, this.constructor.defaults, config);
+    Object.assign(this.imports, imports);
+
+    return co.call(this, function *() {
+      yield this._setStatus(Component.Status.initializing);
+      yield this.init();
+      yield this._setStatus(Component.Status.initialized);
+    });
   }
 
   /**
    * @return {Promise}
    */
   onStart() {
-    this._mapMixins();
-    this._mapHandlers();
-    return this.callMethod(this.start);
+    return co.call(this, function *() {
+      this._setStatus(Component.Status.starting);
+      yield this.start();
+      this._mapHandlers();
+      this._setStatus(Component.Status.started);
+    });
+  }
+
+  /**
+   * @return {Promise}
+   */
+  onAfterStart() {
+    return co.call(this, function *() {
+      yield this.afterStart();
+    });
+  }
+
+  /**
+   * @return {Promise}
+   */
+  onBeforeDestroy() {
+    return co.call(this, function *() {
+      yield this.beforeDestroy();
+    });
   }
 
   /**
    * @return {Promise}
    */
   onDestroy() {
-    this._unmapHandlers();
-    this._unmapMixins();
-    return this.callMethod(this.destroy);
-  }
-
-  callMethod(fn) {
     return co.call(this, function *() {
-      yield fn.call(this);
+      this._setStatus(Component.Status.destroying);
+      yield this.destroy();
+      this._unmapHandlers();
+      this._setStatus(Component.Status.destroyed);
     });
   }
 
@@ -87,40 +133,43 @@ class Component {
     return {};
   }
 
-  get mixins() {
+  get requests() {
     return {};
   }
 
+  _setStatus(status) {
+    let _status = Component.Status[status];
+    if (!_status) {
+      throw new Error(`bad status: ${status}`);
+    }
+    this.status = _status;
+    return this.emit(`component.${_status}`, {
+      id: this.id
+    });
+  }
+
   _mapHandlers() {
-    this._handlers = Object.assign({}, this.handlers);
-    this._handlers = Object.keys(this._handlers)
-      .map(msg => [msg, this._handlers[msg].bind(this)]);
-    this._handlers.forEach(([msg, fn]) => this.app.on(msg, fn));
+    Object.entries(this.handlers)
+      .forEach(([msg, fn]) => this.on(msg, fn));
+
+    Object.entries(this.requests)
+      .forEach(([msg, fn]) => this.onRequest(msg, fn));
   }
 
   _unmapHandlers() {
-    this._handlers.forEach(([msg, fn]) => this.app.off(msg, fn));
-  }
-
-  _mapMixins() {
-    Object.keys(this.mixins)
-      .forEach(name => {
-        if (this.app[name]) {
-          throw new Error(`Can't use mixin '${name}' - application already has method or field with same name`);
-        }
-
-        let mixin = this.mixins[name];
-        if (isFunction(mixin)) {
-          mixin = mixin.bind(this);
-        }
-        Object.assign(this.app, { [name]: mixin });
-      });
-  }
-
-  _unmapMixins() {
-    Object.keys(this.mixins)
-      .forEach(fnName => delete this.app[fnName]);
+    Object.entries(this.handlers).concat(Object.entries(this.requests))
+      .forEach(([msg, fn]) => this.off(msg, fn));
   }
 }
+
+Component.Status = {
+  created: 'created',
+  initializing: 'initializing',
+  initialized: 'initialized',
+  starting: 'starting',
+  started: 'started',
+  destroying: 'destroying',
+  destroyed: 'destroyed'
+};
 
 export default Component;

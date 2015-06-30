@@ -1,51 +1,53 @@
 @startuml
 
-package WARP {
+package @hp/warp {
     class Application <<(S,#FF7700) Singleton>> {
       +{static}create()
       ----
       +name: String
+      +data: Object
       -state: Object
-      -components: Map
       ....
       +start()
       +destroy()
       ....
-      +get()
-      +set()
-      ....
-      +addComponent()
-      +hasComponent()
-      +getComponent()
-      ....
+      +use()
+      +useConfig()
+    }
+
+    class Bus {
       +on()
       +once()
+      +onRequest()
       +off()
       +wait()
+      +request()
     }
 
     abstract Component {
       +{static} id: String
       +{static} defaults: Object
       ----
-      +app: Application
-      ----
       +{abstract}init()
       +{abstract}start()
+      +{abstract}afterStart()
+      +{abstract}beforeDestroy()
       +{abstract}destroy()
       ----
-      +{abstract}mixins: Object
       +{abstract}handlers: Object
+      +{abstract}requests: Object
     }
 
+    Application --> Bus: > uses
     Application *- Component: > has many
+    Component --> Bus: > delegates
 }
+
 class ConcreteComponent {
   -someProperty
   +someMethod()
-  ..mixins..
-  +someMethod()
 }
-Component <|. ConcreteComponent
+
+Component <|.up. ConcreteComponent
 
 @enduml

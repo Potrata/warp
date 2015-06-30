@@ -2,7 +2,7 @@
 ----
 
 ### Overview
-WARP
+![Classes](./classes.png)
 
 ### Installation
 ``` bash
@@ -15,5 +15,5 @@ import warp from '@hp/warp';
 
 let app = warp({ name: 'pretty-fucking-awesome' });
   app.start()).then(() =>
-  app.info(`app started`)).catch(console.error);
+  app.bus.emit(`log`, `app started`)).catch(console.error);
 ```

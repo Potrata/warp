@@ -1,11 +1,17 @@
 'use strict';
 
-import Component from './component';
+import debug from 'debug';
+import {resolve} from 'path';
+import EventEmitter from 'events';
 import assert from 'assert';
 import {isObject, isFunction, isString} from 'util';
-import getHub from './hub';
 
-let hub = getHub('global');
+import Component from './component';
+import Bus from './bus';
+
+const Functors = {
+  reduce: (prev, cur) => Object.assign(prev, cur)
+};
 
 /**
  * @desc Represents generic application skeleton,
@@ -19,12 +25,15 @@ class Application {
    * @return {Application}
    */
   static create(config) {
-    if (!Application._instance) {
-      Application._instance = new Application(config);
-    }
-    return Application._instance;
+    return new Application(config);
   }
 
+  static get defaults() {
+    return {
+      name: 'app',
+      componentsRoot: '.'
+    }
+  }
 
   /**
    * @param {Object} config
@@ -33,148 +42,196 @@ class Application {
    */
   constructor(config) {
     assert(config.name, 'application name should be a string');
-    assert(!Application._instance, 'application can be instantiated only once');
-    Object.assign(this, config);
+
+    this.name = config.name;
+    this.config = Object.assign({}, Application.defaults, config);
+
+    this.data = Object.assign({ name: this.name }, config.data);
+
+    this.bus = new Bus();
     this._components = new Map();
-    this._state = {
-      name: this.name
-    };
-  }
 
-  get publish() {
-    return {
-      changed: (data) => hub.createMessage(this.name, 'changed', data),//.publish(),
-      started: () => hub.createMessage(this.name, 'started'),//.publish(),
-      destroyed: () => hub.createMessage(this.name, 'destroyed')//.publish()
-    };
-  }
+    this.debug = debug(this.name);
 
-  /**
-   * @desc Returns object, filled with state data, keyed by field names,
-   * or the whole state object, when no names given)
-   * @param {Array<String>} fieldNames
-   * @return {Object<String,*>}
-   */
-  get(...fieldNames) {
-    if (fieldNames.length < 1) {
-      return Object.assign({}, this._state);
-    }
+    this.bus.onRequest('app.destroy', function *(data) {
+      this.debug(`destroying application. reason: ${data.reason}`);
+      yield this.destroy();
+    }, this);
 
-    else if (fieldNames.length === 1) {
-      return this._state[fieldNames[0]];
-    }
+    this.bus.on('app.data', (data) => {
+      this.data = Object.assign({}, this.data, data);
+    });
 
-    return fieldNames
-      .filter(fieldName => this._state.hasOwnProperty(fieldName))
-      .map(fieldName => ({ [fieldName]: this._state[fieldName] }))
-      .reduce((p, c) => Object.assign(p, c), {});
-  }
+    this.bus.onRequest('app.query.data', () => {
+      return Object.assign({}, this.data);
+    });
 
-  /**
-   * @desc Sets state data to value by given field name
-   * @param {String|Object} fieldName
-   * @param {*} [value]
-   * @return {Promise}
-   */
-  set(fieldName, value) {
-    assert(fieldName, 'fieldName should be defined');
-
-    let _changedData;
-    if (isObject(fieldName)) {
-      Object.assign(this._state, fieldName);
-      _changedData = fieldName;
-    } else {
-      this._state[fieldName] = value;
-      _changedData = { [fieldName]: value };
-    }
-    this.publish.changed(_changedData);
-    return Promise.resolve(_changedData);
+    this._setStatus('created');
   }
 
   /**
    * @desc Starts an application:
-   * calls 'init' method on each registered component, then fires 'started' event/
+   * calls 'init' method on each registered component, then fires 'app.started' event
    * @return {Promise}
    */
   start() {
-    return this._forEachComponent('onStart')
-      .then(() => this.publish.started());
+    this.debug(`starting`);
+    this._instantiateComponents();
+
+    return this._initializeComponents()
+      .then(() => this._setStatus('starting'))
+      .then(() => this._forEachComponent('onStart'))
+      .then(() => this._setStatus('started', this.data))
+      .then(() => this._forEachComponent('onAfterStart'));
   }
 
   /**
    * @desc Destroys an application:
-   * calls 'destroy' method on each registered component, then fires 'destroyed' event/
+   * calls 'destroy' method on each registered component, then fires 'app.destroyed' event
    * @return {Promise}
    */
   destroy() {
-    return this._forEachComponent('onDestroy')
-      .then(() => this.publish.destroyed())
-      .then(() => Application._instance = null);
+    this.debug(`destroying ${this.name}`);
+    return this._forEachComponent('onBeforeDestroy')
+      .then(() => this._setStatus('destroying'))
+      .then(() => this._forEachComponent('onDestroy'))
+      .then(() => this._setStatus('destroyed'));
   }
 
   /**
-   * @desc Checking if component with given id is registered
-   * @param {String|Number} id
-   * @return {boolean}
-   */
-  hasComponent(id) {
-    return this._components.has(id);
-  }
-
-  /**
-   * @desc Returns component instance by given id, if registered
-   * @param {String|Number} id
-   * @return {Component}
-   */
-  getComponent(id) {
-    return this._components.get(id);
-  }
-
-  useModule(module, config) {
-    let component = Component.create(module, config);
-    return component
-      .onInit(this)
-      .then(() => this._components.set(component.id, component));
-
-  }
-
-  /**
-   * @desc Registers component, represented by given class
-   * @param {Component.prototype} ComponentClass
-   * @param {Object} [config]
+   * @desc Registers component, represented by given class or module path
+   * @param {Component|string} component
+   * @param {object} [componentConfig]
    * @return {Promise}
    */
-  use(ComponentClass, config) {
-    return this._addComponent(ComponentClass, config);
+  use(component, componentConfig = {}) {
+    if (isString(component)) {
+      let path = resolve(this.config.componentsRoot, component);
+      this.debug(`loading component module: ${path}`);
+      component = require(path);
+    }
+    return this._addComponent(component, componentConfig);
   }
 
   /**
-   * @desc Registers many components, represented by given classes
-   * @param {args<Component.prototype>} components
-   * @return {Promise}
+   *
+   * @desc Loads whole bunch of components using configuration object.
+   * @param {Array<string,Object>} config
+   *
+   * @example configuration object:
+   * let components = [{
+   *    'component-one': {
+   *      imports: [],
+   *      config: { someOption: 'someValue' }
+   *    },
+   *
+   *    'component-two': {
+   *      imports: ['component-one'], // dependency declaration (it overrides the defaults)
+   *      config: { anotherOption: 'anotherValue' }
+   *    },
+   *
+   *    'one-more-component': {
+   *      path: './path/to/my-components', // explicit path declaration (overrides 'config.app.componentsRoot')
+   *      imports: ['component-one', 'component-two'],
+   *      config: {}
+   *    },
+   *    ... etc ...
+   * }];
+   *
+   * let warp = require('@hp/warp');
+   * let app = warp({ name: 'this-is-warp' });
+   *
+   * // loads stuff synchronously
+   * app.useConfig(components);
+   *
+   * // app is ready to start
+   * app.start().then( ... ).catch( ... );
    */
-  addComponents(...components) {
-    return Promise.all(components.map(component => this._addComponent(component)));
+  useConfig(config = {}) {
+    Object.entries(config).forEach(([key, configEntry]) => {
+      let component = key;
+      if (configEntry.path) {
+        component = require(configEntry.path);
+      }
+
+      let _instance = this.use(component, configEntry.config);
+      _instance.imports = configEntry.imports;
+    });
   }
 
   _addComponent(ComponentClass, config) {
-    let component = new ComponentClass(config);
-    let {id} = component;
-    assert(!this.hasComponent(id), `component ${id} already exists`);
+    let id = config.id || ComponentClass.id || ComponentClass.name;
+    assert(!this._components.has(id), `component with id '${id}' already registered`);
 
-    return component
-      .onInit(this)
-      .then(() => {
-        this._components.set(id, component);
-        return component;
+    this.debug(`adding component: ${ComponentClass.name}`);
+
+    let _entry = { id, ComponentClass, config };
+    this._components.set(id, _entry);
+    return _entry;
+  }
+
+  _instantiateComponents() {
+    [...this._components.values()]
+      .forEach(entry => {
+        entry.imports = this._getImportsFor(entry);
+        entry.instance = new entry.ComponentClass(entry.id, this.bus);
       });
   }
 
+  _initializeComponents() {
+    let _promises = [...this._components.values()]
+      .map(entry => {
+        let {instance, config} = entry;
+        let imports = this._normalizeImports(entry);
+        return instance.onInit.call(instance, config, imports);
+      });
+    return Promise.all(_promises);
+  }
+
+  _normalizeImports(entry) {
+    return entry.imports
+      .map(importEntry => {
+        let _exports = this._getExportsFor(importEntry);
+        return { [importEntry.id]: _exports };
+      }).reduce(Functors.reduce, {});
+  }
+
+  _getExportsFor(entry) {
+    let exports = entry.ComponentClass.exports || [];
+
+    return exports.map((fnName) => {
+      return {
+        [fnName]: entry.instance[fnName].bind(entry.instance)
+      };
+    }).reduce(Functors.reduce, {});
+  }
+
+  _getImportsFor(entry) {
+    let {id} = entry;
+    let imports = entry.imports || entry.ComponentClass.imports;
+
+    this.debug(`getting imports of ${id}: [${imports.join(', ')}]`);
+
+    return imports.map(importId => {
+      let importEntry = this._components.get(importId);
+      if (!importEntry) {
+        throw new Error(`Component '${importId}' required by '${id}' is not registered`);
+      }
+      return importEntry;
+    });
+  }
+
   _forEachComponent(fnName, ...args) {
-    let resultPromises = [...this._components]
-      .filter(([,c]) => isFunction(c[fnName]))
-      .map(([,c]) => c[fnName].call(c, ...args));
-    return Promise.all(resultPromises);
+    let _promises = [];
+    for (let entry of this._components.values()) {
+      _promises.push(entry.instance[fnName].call(entry.instance, ...args));
+    }
+
+    return Promise.all(_promises);
+  }
+
+  _setStatus(status, data) {
+    return this.bus.emit(`app.${status}`, data);
   }
 }
 
