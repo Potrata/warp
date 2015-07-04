@@ -27,7 +27,7 @@ class Bus extends EventEmitter {
   emit(event, ...args) {
     return new Promise(resolve => process.nextTick(() => {
       if (event !== 'event') {
-        this.emit('event', event, ...args);
+        super.emit('event', event, ...args);
       }
       resolve(super.emit(event, ...args));
     }));

@@ -116,7 +116,7 @@ class Application {
   /**
    *
    * @desc Loads whole bunch of components using configuration object.
-   * @param {Array<string,Object>} config
+   * @param {object<string,object>} config
    *
    * @example configuration object:
    * let components = [{
