@@ -1,6 +1,6 @@
 {
   "name": "@hp/warp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "WARP",
   "main": "./index.es6",
   "author": "Николай Чурсин <n_chursin@head-point.ru>",
