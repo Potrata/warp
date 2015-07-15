@@ -114,7 +114,6 @@ class Application {
   }
 
   /**
-   *
    * @desc Loads whole bunch of components using configuration object.
    * @param {object<string,object>} config
    *
