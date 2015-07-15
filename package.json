@@ -2,17 +2,15 @@
   "name": "@hp/warp",
   "version": "1.0.2",
   "description": "WARP",
-  "main": "./index.es6",
-  "author": "Николай Чурсин <n_chursin@head-point.ru>",
+  "main": "./dist/index.js",
+  "author": "Nikolay Chursin <n_chursin@head-point.ru>",
   "license": "ISC",
   "dependencies": {
-    "babel": "^5.6.14",
-    "debug": "^2.2.0",
-    "co": "^4.5.4"
+    "co": "^4.6.0"
   },
   "repository": {
     "type": "git",
-    "url": "https://stash.head-point.ru/scm/warp/warp.git"
+    "url": "https://github.com/potrata/warp"
   },
   "keywords": [
     "warp"
@@ -23,6 +21,8 @@
     "build": "rm -rf ./dist && babel --ignore=node_modules --source-maps=true --extensions='.es6' --copy-files -d ./dist ./"
   },
   "devDependencies": {
+    "debug": "^2.2.0",
+    "babel": "^5.6.23",
     "bunyan": "^1.4.0",
     "chai": "^3.0.0",
     "mocha": "^2.2.5"
