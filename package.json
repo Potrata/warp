@@ -18,13 +18,16 @@
     "warp"
   ],
   "scripts": {
+    "lint": "eslint .",
     "test": "mocha --compilers js:babel/register ./test",
     "prepublish": "npm test",
     "build": "rm -rf ./dist && babel --ignore=node_modules --source-maps=true --extensions='.es6' --copy-files -d ./dist ./"
   },
   "devDependencies": {
+    "babel-eslint": "^3.1.23",
     "bunyan": "^1.4.0",
     "chai": "^3.0.0",
+    "eslint": "^0.24.1",
     "mocha": "^2.2.5"
   }
 }
