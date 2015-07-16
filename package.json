@@ -21,10 +21,11 @@
     "build": "rm -rf ./dist && babel --ignore=node_modules --source-maps=true --extensions='.es6' --copy-files -d ./dist ./"
   },
   "devDependencies": {
-    "debug": "^2.2.0",
     "babel": "^5.6.23",
+    "babel-runtime": "^5.7.0",
     "bunyan": "^1.4.0",
     "chai": "^3.0.0",
+    "debug": "^2.2.0",
     "mocha": "^2.2.5"
   }
 }
