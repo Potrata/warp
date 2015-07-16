@@ -1,9 +1,9 @@
 {
-  "name": "@hp/warp",
+  "name": "node-warp",
   "version": "1.0.2",
-  "description": "WARP",
+  "description": "Web-agnostic Rapid Prototyping tools",
   "main": "./dist/index.js",
-  "author": "Nikolay Chursin <n_chursin@head-point.ru>",
+  "author": "Nikolay Chursin <nick.chursin@gmail.com>",
   "license": "ISC",
   "dependencies": {
     "co": "^4.6.0"
