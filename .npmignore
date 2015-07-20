@@ -1,0 +1,6 @@
+.idea
+.directory
+*.log
+*.tgz
+src/
+test/

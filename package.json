@@ -2,13 +2,16 @@
   "name": "node-warp",
   "version": "1.0.5",
   "description": "Web-agnostic Rapid Prototyping tools",
-  "main": "./dist/index.js",
+  "main": "./lib/index.js",
+  "scripts": {
+    "prepublish": "npm run build && npm test",
+    "clean": "rm -rf ./lib/*",
+    "build": "npm run clean && babel -d ./lib ./src --copy-files",
+    "test": "mocha --compilers js:babel/register ./test",
+    "patch": "npm version patch && git push origin --follow-tags && npm publish"
+  },
   "author": "Nikolay Chursin <nick.chursin@gmail.com>",
   "license": "ISC",
-  "dependencies": {
-    "co": "^4.6.0",
-    "debug": "^2.2.0"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/potrata/warp"
@@ -16,16 +19,20 @@
   "keywords": [
     "warp"
   ],
-  "scripts": {
-    "test": "mocha --compilers js:babel/register ./test",
-    "prepublish": "npm test",
-    "build": "rm -rf ./dist && babel --ignore=node_modules --source-maps=true --extensions='.es6' --copy-files -d ./dist ./"
+  "bundleDependencies": [
+    "babel-runtime",
+    "co",
+    "debug"
+  ],
+  "dependencies": {
+    "co": "^4.6.0",
+    "debug": "^2.2.0",
+    "babel-runtime": "^5.7.0"
   },
   "devDependencies": {
     "babel": "^5.6.23",
-    "babel-runtime": "^5.7.0",
     "bunyan": "^1.4.0",
-    "chai": "^3.0.0",
+    "chai": "^3.2.0",
     "mocha": "^2.2.5"
   }
 }

@@ -1,0 +1,43 @@
+!define TITLE(name,ver,desc) title = name\n==== (version ver)\n <size:11><color:gray>desc\n----\n
+!define TITLE(name,ver) title = name\n==== (version ver)\n----\n
+!define TITLE(name) title = name\n----\n
+
+!define COMPONENT(name,text,color) component "text" as name color
+!define COMPONENT(name,color) COMPONENT(name,name,color)
+!define COMPONENT(name) COMPONENT(name,#222222)
+
+!define EXPLICIT_DEPENDENCY(from,to) from ==> to: depends
+!define IMPLICIT_DEPENDENCY(from,to) from ..> to: aware of
+
+!define RECT(name,color,content) rectangle "content" as name color
+!define RECT(name,color) RECT(name,color,name)
+!define RECT(name) RECT(name,#eeeeee)
+
+skinparam {
+  componentStyle uml2
+  default {
+    FontName Roboto
+    FontSize 14
+    FontColor black
+  }
+
+  component {
+    arrowColor black
+    StereotypeFontSize 11
+    FontColor white
+    BorderColor white
+  }
+
+  rectangle {
+    BorderColor white
+    FontSize 12
+  }
+
+  note {
+    FontSize 11
+    BackgroundColor #ffffff
+    Border {
+      Color #cccccc
+    }
+  }
+}
