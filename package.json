@@ -1,14 +1,14 @@
 {
   "name": "node-warp",
-  "version": "1.0.8",
+  "version": "1.0.6",
   "description": "Web-agnostic Rapid Prototyping tools",
   "main": "./lib/index.js",
   "scripts": {
-    "prepublish": "npm run build && npm test",
     "clean": "rm -rf ./lib/*",
     "build": "npm run clean && babel -d ./lib ./src --copy-files",
+    "postbuild": "npm test",
     "test": "mocha --compilers js:babel/register ./test",
-    "patch": "npm version patch && git push origin --follow-tags && npm publish"
+    "patch": "npm run build && npm version patch && git push origin --follow-tags && npm publish"
   },
   "author": "Nikolay Chursin <nick.chursin@gmail.com>",
   "license": "ISC",
