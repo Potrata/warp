@@ -1,0 +1,20 @@
+@startuml
+!include inc.iuml
+
+top to bottom direction
+TITLE(WARP,1.0.5,Top-level static structure)
+package warp {
+
+  RECT(Utils)
+  RECT(Config)
+  COMPONENT(Component)
+
+  RECT(Bus,#yellow) {
+    RECT(Message)
+    RECT(Channel)
+  }
+
+  Component -up-> Bus
+}
+
+@enduml

@@ -9,13 +9,12 @@ Web-agnostic Rapid Prototyping tools
 
 ## Installation
 ```bash
-$ npm install @hp/warp --save
+$ npm install node-warp --save
 ```
-
 
 ## Usage
 ```javascript
-import warp from '@hp/warp';
+import warp from 'node-warp';
 
 let app = warp({ name: 'pretty-fucking-awesome' });
 app.start())
