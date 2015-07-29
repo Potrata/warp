@@ -1,6 +1,6 @@
 {
   "name": "node-warp",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Web-agnostic Rapid Prototyping tools",
   "main": "./lib/index.js",
   "scripts": {
