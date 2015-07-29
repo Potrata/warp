@@ -21,3 +21,9 @@ app.start())
   .then(() => app.bus.emit(`log`, `app started`))
   .catch(console.error);
 ```
+
+## Linting
+Using [ESLint](http://eslint.org/) with [babel-eslint plugin](https://github.com/babel/babel-eslint) 
+```sh
+npm run lint
+```

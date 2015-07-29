@@ -1,6 +1,6 @@
 'use strict';
 
-import * as random from './../lib/utils/random.es6';
+import * as random from './../src/utils/random.es6';
 import {expect} from 'chai';
 
 describe('random', () => {

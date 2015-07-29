@@ -2,6 +2,8 @@
 *.pid
 *.seed
 .idea
-node_modules
-out
-dist
+/node_modules
+/out
+/src
+
+lib

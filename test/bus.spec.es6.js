@@ -1,7 +1,7 @@
 'use strict';
 
 import {expect} from 'chai';
-import Bus from './../lib/bus';
+import Bus from './../src/bus';
 
 describe('bus', () => {
   let bus = new Bus();
