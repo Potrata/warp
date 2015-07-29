@@ -2,5 +2,5 @@
 .directory
 *.log
 *.tgz
-src/
-test/
+/src
+/test
