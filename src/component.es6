@@ -14,8 +14,8 @@ class Component {
    */
   constructor(id, bus) {
     this.id = id;
-    this.imports = {};
     this.config = {};
+    this.imports = {};
     this._bus = bus;
     this.debug = debug(this.id);
     this._setStatus(Component.Status.created);
@@ -77,7 +77,7 @@ class Component {
 
     return co.call(this, function* _init() {
       yield this._setStatus(Component.Status.initializing);
-      yield this.init();
+      yield this.init(config, imports);
       yield this._setStatus(Component.Status.initialized);
     });
   }

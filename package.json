@@ -30,11 +30,11 @@
     "babel-runtime": "^5.7.0"
   },
   "devDependencies": {
-    "babel": "^5.6.23",
+    "babel": "^5.x.x",
     "babel-eslint": "^4.0.5",
     "bunyan": "^1.4.0",
     "chai": "^3.2.0",
-    "eslint": "^0.24.1",
+    "eslint": "^0.x.x",
     "mocha": "^2.2.5"
   }
 }

@@ -124,7 +124,6 @@ class Bus extends EventEmitter {
    * @desc Returns promise, resolved later by event with message given, or rejected by timeout.
    * @param {String} event
    * @param {Number} [timeout = 0]
-   * @param {String} [from = 'global']
    * @return {Promise}
    */
   wait(event, timeout = 0) {
