@@ -7,6 +7,8 @@ import {default as Bus} from './bus';
 
 const Functors = {
   reduce: (prev, cur) => Object.assign(prev, cur),
+  priorityAscending: (a, b) => a.config.priority - b.config.priority,
+  priorityDescending: (a, b) => b.config.priority - a.config.priority,
 };
 
 /**
@@ -69,9 +71,9 @@ class Application {
 
     return this._initializeComponents()
       .then(() => this._setStatus('starting'))
-      .then(() => this._forEachComponent('onStart'))
+      .then(() => this._forEachComponent('onStart', Functors.priorityAscending))
       .then(() => this._setStatus('started', this.data))
-      .then(() => this._forEachComponent('onAfterStart'));
+      .then(() => this._forEachComponent('onAfterStart', Functors.priorityAscending));
   }
 
   /**
@@ -81,9 +83,9 @@ class Application {
    */
   destroy() {
     this.debug(`destroying ${this.name}`);
-    return this._forEachComponent('onBeforeDestroy')
+    return this._forEachComponent('onBeforeDestroy', Functors.priorityDescending)
       .then(() => this._setStatus('destroying'))
-      .then(() => this._forEachComponent('onDestroy'))
+      .then(() => this._forEachComponent('onDestroy', Functors.priorityDescending))
       .then(() => this._setStatus('destroyed'));
   }
 
@@ -220,10 +222,14 @@ class Application {
     }).reduce(Functors.reduce, {});
   }
 
-  _forEachComponent(fnName, ...args) {
-    const promises = [...this._components.values()]
-      .map(({instance}) => instance[fnName].call(instance, ...args));
-    return Promise.all(promises);
+  _forEachComponent(fnName, comparator, ...args) {
+    const components = [...this._components.values()];
+    return components
+      .sort(comparator)
+      .map(({instance}) => instance)
+      .reduce((prev, cur) => 
+        prev.then(() => cur[fnName].call(cur, ...args)),
+        Promise.resolve());
   }
 
   _setStatus(status, data) {
