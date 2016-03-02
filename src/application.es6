@@ -227,11 +227,9 @@ class Application {
     return components
       .sort(comparator)
       .map(({instance}) => instance)
-      .reduce((previousPromise, currentInstance) => {
-      return previousPromise.then(() => {
-        return currentInstance[fnName].call(currentInstance, ...args);
-      });
-    }, Promise.resolve());
+      .reduce((prev, cur) => 
+        prev.then(() => cur[fnName].call(cur, ...args)),
+        Promise.resolve());
   }
 
   _setStatus(status, data) {
