@@ -6,7 +6,9 @@ import co from 'co';
  * @class
  */
 class Component {
-  static defaults = {};
+  static defaults = {
+    priority: 0,
+  };
 
   /**
    * @param {string} id
