@@ -177,7 +177,7 @@ class Application {
     return Object.assign({}, entry, { instance });
   }
 
-  _getImportsFor({id, ComponentClass, imports = ComponentClass.imports || []}) {
+  _getImportsFor({ id, ComponentClass, imports = ComponentClass.imports || [] }) {
     this.debug(`getting imports of ${id}: [${imports.join(', ')}]`);
 
     return imports
@@ -195,7 +195,7 @@ class Application {
       });
 
     const _promises = [...this._components.values()]
-      .map(({instance, config, imports}) => {
+      .map(({ instance, config, imports }) => {
         const normalizedImports = this._normalizeImports(imports);
         return instance.onInit.call(instance, config, normalizedImports);
       });
@@ -211,7 +211,7 @@ class Application {
       }).reduce(Functors.reduce, {});
   }
 
-  _getExportsFor({ComponentClass, instance}) {
+  _getExportsFor({ ComponentClass, instance }) {
     this.debug(`getting imports for [${instance.id}]`);
     const exports = ComponentClass.exports || [];
 
@@ -226,10 +226,10 @@ class Application {
     const components = [...this._components.values()];
     return components
       .sort(comparator)
-      .map(({instance}) => instance)
+      .map(({ instance }) => instance)
       .reduce((prev, cur) =>
-	prev.then(() => cur[fnName].call(cur, ...args)),
-	Promise.resolve());
+          prev.then(() => cur[fnName].call(cur, ...args)),
+        Promise.resolve());
   }
 
   _setStatus(status, data) {
